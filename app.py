@@ -88,14 +88,24 @@ def rsi(series, period=14):
     rs = roll_up / roll_down.replace(0,np.nan)
     return 100 - (100/(1+rs))
 
-def ichimoku(df, conv=9, base=26, span_b=52, disp=26):
+def idef ichimoku(df, conv=9, base=26, span_b_period=52, disp=26):
+    # Séries de base
     high, low, close = df['High'], df['Low'], df['Close']
-    tenkan = (high.rolling(conv).max() + low.rolling(conv).min())/2
-    kijun  = (high.rolling(base).max() + low.rolling(base).min())/2
-    span_a = ((tenkan+kijun)/2).shift(disp)
-    span_b = ((high.rolling(span_b).max() + low.rolling(span_b).min())/2).shift(disp)
+    # Calculs
+    tenkan = (high.rolling(conv).max() + low.rolling(conv).min()) / 2
+    kijun  = (high.rolling(base).max() + low.rolling(base).min()) / 2
+    span_a = ((tenkan + kijun) / 2).shift(disp)
+    span_b = ((high.rolling(span_b_period).max() + low.rolling(span_b_period).min()) / 2).shift(disp)
     chikou = close.shift(-disp)
-    return pd.DataFrame({'tenkan':tenkan,'kijun':kijun,'span_a':span_a,'span_b':span_b,'chikou':chikou}, index=df.index)
+    # Réindexation pour garder la même longueur (évite la ValueError)
+    idx = df.index
+    out = pd.DataFrame(index=idx)
+    out['tenkan'] = tenkan.reindex(idx)
+    out['kijun']  = kijun.reindex(idx)
+    out['span_a'] = span_a.reindex(idx)
+    out['span_b'] = span_b.reindex(idx)
+    out['chikou'] = chikou.reindex(idx)
+    return out
 
 def swing_points(df, window=3):
     highs = df['High'].rolling(window*2+1, center=True).apply(lambda x: float(x[window]==x.max()))
